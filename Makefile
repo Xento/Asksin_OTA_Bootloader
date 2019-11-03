@@ -22,6 +22,7 @@ FORMAT           = ihex
 # Override is only needed by avr-lib build system.
 override CFLAGS  = -g -Wall $(OPTIMIZE) -mmcu=$(MCU) -DF_CPU=$(F_CPU)
 override LDFLAGS = -Wl,--section-start=.text=${BOOTLOADER_START},--section-start=.bootloaderUpdate=${BOOTLOADER_UPDATE_START},--section-start=.addressDataType=${ADDRESS_DATA_TYPE_START},--section-start=.addressDataSerial=${ADDRESS_DATA_SERIAL_START},--section-start=.addressDataId=${ADDRESS_DATA_ID_START}
+override LDFLAGS_OTA = -Wl,--section-start=.text=${BOOTLOADER_START_OTA},--section-start=.bootloaderUpdate=${BOOTLOADER_UPDATE_START},--section-start=.addressDataType=${ADDRESS_DATA_TYPE_START},--section-start=.addressDataSerial=${ADDRESS_DATA_SERIAL_START},--section-start=.addressDataId=${ADDRESS_DATA_ID_START},--section-start=.addressDataOTABOOTLOADER=${ADDRESS_SECTION_OTABOOTLOADER}
 
 all:
 
@@ -73,6 +74,39 @@ ATmega1284P:        ADDRESS_DATA_SERIAL_START = 0x1FFF2
 ATmega1284P:        ADDRESS_DATA_ID_START     = 0x1FFFC
 ATmega1284P:        hex
 
+
+Atmega328p_OTA:     TARGET                    = Atmega328p_OTA
+Atmega328p_OTA:     MCU                       = atmega328p
+Atmega328p_OTA:	    CODE_END                  = 0x6FFF
+Atmega328p_OTA:     BOOTLOADER_PAGES          = 30
+Atmega328p_OTA:     BOOTLOADER_UPDATE_START   = 0x7F00
+
+Atmega328p_OTA:     BOOTLOADER_START          = 0x7000
+Atmega328p_OTA:     BOOTLOADER_START_OTA      = 0x0000
+Atmega328p_OTA:     ADDRESS_DATA_TYPE_START   = 0x7FF0
+Atmega328p_OTA:     ADDRESS_DATA_SERIAL_START = 0x7FF2
+Atmega328p_OTA:     ADDRESS_DATA_ID_START     = 0x7FFC
+Atmega328p_OTA:     ADDRESS_SECTION_OTABOOTLOADER     = 0x6FFC
+Atmega328p_OTA:     hex_ota_generic
+
+hex_ota_generic: uart_code
+	$(CC) -Wall -c -std=c99 -mmcu=$(MCU) $(LDFLAGS_OTA) -DF_CPU=$(F_CPU) -D$(TARGET) $(OPTIMIZE) cc.c -o cc.o
+	$(CC) -Wall    -std=c99 -mmcu=$(MCU) $(LDFLAGS_OTA) -DF_CPU=$(F_CPU) -D$(TARGET) -DCODE_END=${CODE_END} -DBOOTLOADER_START=${BOOTLOADER_START_OTA} -DBOOTLOADER_PAGES=${BOOTLOADER_PAGES} $(OPTIMIZE) bootloader.c cc.o uart/uart.o -o $(PROGRAM)-$(TARGET)$(SUFFIX).elf
+	$(OBJCOPY) -j .text -j .data  -j .addressDataOTABOOTLOADER -O $(FORMAT) $(PROGRAM)-$(TARGET)$(SUFFIX).elf $(PROGRAM)-$(TARGET)$(SUFFIX).hex
+
+	@avr-nm -fsysv -n -S -l -a $(PROGRAM)-$(TARGET)$(SUFFIX).elf
+	echo
+	@avr-size -C --mcu=$(MCU) $(PROGRAM)-$(TARGET)$(SUFFIX).elf
+
+hex_ota_model: uart_code
+	$(CC) -Wall -c -std=c99 -mmcu=$(MCU) $(LDFLAGS_OTA) -DF_CPU=$(F_CPU) -D$(TARGET) $(OPTIMIZE) cc.c -o cc.o
+	$(CC) -Wall    -std=c99 -mmcu=$(MCU) $(LDFLAGS_OTA) -DF_CPU=$(F_CPU) -D$(TARGET) -DCODE_END=${CODE_END} -DBOOTLOADER_START=${BOOTLOADER_START_OTA} -DBOOTLOADER_PAGES=${BOOTLOADER_PAGES} $(OPTIMIZE) bootloader.c cc.o uart/uart.o -o $(PROGRAM)-$(TARGET)$(SUFFIX).elf
+	$(OBJCOPY) -j .text -j .data -j .bootloaderUpdate -j .addressDataType -j .addressDataSerial -j .addressDataId  -j .addressDataOTABOOTLOADER -O $(FORMAT) $(PROGRAM)-$(TARGET)$(SUFFIX).elf $(PROGRAM)-$(TARGET)$(SUFFIX).hex
+
+	@avr-nm -fsysv -n -S -l -a $(PROGRAM)-$(TARGET)$(SUFFIX).elf
+	echo
+	@avr-size -C --mcu=$(MCU) $(PROGRAM)-$(TARGET)$(SUFFIX).elf
+	
 hex: uart_code
 	$(CC) -Wall -c -std=c99 -mmcu=$(MCU) $(LDFLAGS) -DF_CPU=$(F_CPU) -D$(TARGET) $(OPTIMIZE) cc.c -o cc.o
 	$(CC) -Wall    -std=c99 -mmcu=$(MCU) $(LDFLAGS) -DF_CPU=$(F_CPU) -D$(TARGET) -DCODE_END=${CODE_END} -DBOOTLOADER_START=${BOOTLOADER_START} -DBOOTLOADER_PAGES=${BOOTLOADER_PAGES} $(OPTIMIZE) bootloader.c cc.o uart/uart.o -o $(PROGRAM)-$(TARGET)$(SUFFIX).elf

@@ -27,6 +27,11 @@ const uint8_t hm_Type[2]        ADDRESS_SECTION_TYPE   = {HM_TYPE};				// 2 byte
 const uint8_t hm_serial[10]     ADDRESS_SECTION_SERIAL = {HM_SERIAL};			// 10 bytes serial number
 const uint8_t hm_id[3]          ADDRESS_SECTION_ID     = {HM_ID};				// 3 bytes device address
 
+#if defined(HM_MAGICOTA)
+	#define ADDRESS_SECTION_OTABOOTLOADER     __attribute__ ((section (".addressDataOTABOOTLOADER")))
+	const uint8_t magic_word[2]        ADDRESS_SECTION_OTABOOTLOADER   = {HM_MAGICOTA};				// 2 bytes device type
+#endif
+
 #if DEBUG > 1
 	void pHex(const uint8_t *buf, uint8_t len) {
 		const char hexDigits[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
